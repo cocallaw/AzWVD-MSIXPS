@@ -30,8 +30,8 @@ function Get-LatestMSIXMGR {
     }
     Write-Host "Downloaded MSIXManager to $msixdlpath"
     Write-Host "Expanding and cleaning up MSIXManager"
-    Expand-Archive "$WVDSetupFslgxPath\FSLogix_Apps.zip" -DestinationPath "$msixworkingpath" -ErrorAction SilentlyContinue
-    Remove-Item "$WVDSetupFslgxPath\FSLogix_Apps.zip" 
+    Expand-Archive "$msixdlpath\MSIXManager.zip" -DestinationPath $msixworkingpath -ErrorAction SilentlyContinue
+    Remove-Item "$msixdlpath" -Recurse
 }
 
 function get-msixpackagepath {
@@ -54,6 +54,26 @@ function Invoke-Option {
     if ($userSelection -eq "1") {
         #1 - Create MSIX VHDX
         #Check for Modules if not installed request install 
+        if (Get-Module -ListAvailable -Name Hyper-V) {
+            Write-Host "Module exists"
+        } 
+        else {
+            Write-Host "Hyper-V Powershell Modules are not installed on $env:computername"
+            #Provide option to install 
+            $hv = Read-Host -Prompt "Would you like to enable Hyper-V PowerShell modules on $env:computername (y/n)"
+            if ($hv.Trim().ToLower() -eq "y") {
+                Invoke-Option -userSelection "3"
+            }
+            elseif ($hv.Trim().ToLower() -eq "n") {
+
+                Invoke-Option -userSelection (Get-Option)
+            }
+            else{
+                Write-Host "Invalid option entered" -ForegroundColor Yellow -BackgroundColor Black
+                Invoke-Option -userSelection (Get-Option)
+            }
+
+        }
 
         #Create VHDX
         $msixvhdname = Read-Host -Prompt 'Please provide the name for the VHD:'
@@ -81,8 +101,18 @@ function Invoke-Option {
     elseif ($userSelection -eq "3") {
         #3 - Install Windows 10 Hyper-V PowerShell
         Write-Host "Installing Hyper-V PowerShell Modules on $env:computername"
-        Enable-WindowsOptionalFeature -Online -FeatureName:Microsoft-Hyper-V -All
-        Invoke-Option -userSelection (Get-Option)
+        $ihps = Read-Host -Prompt "Please confirm installation og Hyper-V features on $env:computername (y/n)"
+        if ($ihps.Trim().ToLower() -eq "y") {
+            Enable-WindowsOptionalFeature -Online -FeatureName:Microsoft-Hyper-V -All
+            Invoke-Option -userSelection (Get-Option)
+        }
+        elseif ($ihps.Trim().ToLower() -eq "n") {
+            Invoke-Option -userSelection (Get-Option)
+        }
+        else{
+            Write-Host "Invalid option entered" -ForegroundColor Yellow -BackgroundColor Black
+            Invoke-Option -userSelection (Get-Option)
+        }
     }
     elseif ($userSelection -eq "4") {
         #4 - Configure Machine for MSIX Packaging 
