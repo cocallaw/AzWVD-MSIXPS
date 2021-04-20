@@ -59,44 +59,53 @@ function Invoke-Option {
     )
 
     if ($userSelection -eq "1") {
-        #1 - Create MSIX VHDX
-        #Check for Modules if not installed request install 
+        #1 - Create MSIX VHD
         if (Get-Module -ListAvailable -Name Hyper-V) {
-            Write-Host "Module exists"
+            Write-Host "Found Hyper-V PowerShell Modules for VHD creation" -BackgroundColor Black -ForegroundColor Green
         } 
         else {
-            Write-Host "Hyper-V Powershell Modules are not installed on $env:computername"
-            #Provide option to install 
-            $hv = Read-Host -Prompt "Would you like to enable Hyper-V PowerShell modules on $env:computername (y/n)"
+            Write-Host "Hyper-V Powershell Modules are not installed on $env:computername" -BackgroundColor Black -ForegroundColor Yellow
+            Write-Host "Unable to create VHD without Hyper-V Powershell Modules" -BackgroundColor Black -ForegroundColor Yellow
+            $hv = Read-Host -Prompt "Would you like to enable Hyper-V PowerShell modules on $env:computername ? (y/n)"
             if ($hv.Trim().ToLower() -eq "y") {
                 Invoke-Option -userSelection "3"
             }
             elseif ($hv.Trim().ToLower() -eq "n") {
-
                 Invoke-Option -userSelection (Get-Option)
             }
-            else{
+            else {
                 Write-Host "Invalid option entered" -ForegroundColor Yellow -BackgroundColor Black
                 Invoke-Option -userSelection (Get-Option)
             }
-
         }
 
-        #Create VHDX
+        #Creating VHD Object
         $msixvhdname = Read-Host -Prompt 'Please provide the name for the VHD:'
+        $msixvhdfolder = Read-Host -Prompt 'Please provide a folder name for the MSIX to be expaned to on the VHD:'
         Write-Host "Please provide the path to the MSIX package you would like to use:"
         $msixpackage = get-msixpackagepath
         Write-Host "Using the MSIX Package located at - $msixpackage"
-        New-VHD -SizeBytes 1024MB -Path "c:\$msixworkingpath\$msixvhdname.vhd" -Dynamic -Confirm:$false
+        $vs = Read-Host -Prompt "Would you like to create the VHD with the default size of 1024MB ? (y/n)"
+        if ($vs.Trim().ToLower() -eq "y") {
+            New-VHD -SizeBytes 1024MB -Path "c:\$msixworkingpath\$msixvhdname.vhd" -Dynamic -Confirm:$false
+        }
+        elseif ($vs.Trim().ToLower() -eq "n") {
+            Write-Host "Please proved the storage size that the VHD should be provisioned"
+            Write-Host "For Megabytes use MB (e.g. 500MB) and for Gigabytes use GB (e.g 2GB)"
+            $s = Read-Host -Prompt "Size:"
+            New-VHD -SizeBytes $s.Trim().Replace(" ","") -Path "c:\$msixworkingpath\$msixvhdname.vhd" -Dynamic -Confirm:$false
+        }
+        else {
+            Write-Host "Invalid option entered" -ForegroundColor Yellow -BackgroundColor Black
+            Invoke-Option -userSelection (Get-Option)
+        }
         $vhdObject = Mount-VHD "c:\$msixworkingpath\$msixvhdname.vhd" -Passthru
         $disk = Initialize-Disk -Passthru -Number $vhdObject.Number
         $partition = New-Partition -AssignDriveLetter -UseMaximumSize -DiskNumber $disk.Number
         Format-Volume -FileSystem NTFS -Confirm:$false -DriveLetter $partition.DriveLetter -Force
-
         #Expand MSIX Package into VHDX 
-        msixmgr.exe -Unpack -packagePath $msixpackage -destination "d:\$msixvhdfolder" -applyacls
-
-        #Unmount and Provide details 
+        .\$msixworkingpath\msixmgr.exe -Unpack -packagePath $msixpackage -destination "d:\$msixvhdfolder" -applyacls
+        #Unmount VHD
         Dismount-VHD -path "c:\$msixworkingpath\$msixvhdname.vhd"
         Invoke-Option -userSelection (Get-Option)
     }
