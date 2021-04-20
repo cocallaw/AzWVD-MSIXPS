@@ -1,3 +1,10 @@
+<#
+.DESCRIPTION
+Powershell script to perfrom MSIX App Attach functions for WVD
+.LINK
+https://github.com/cocallaw/AzWVD-MSIXPS
+#>
+
 #region variables
 $msixmgrURI = "https://aka.ms/msixmgr"
 $msixdlpath = "C:\MSIX"
