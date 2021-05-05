@@ -93,7 +93,7 @@ function Invoke-Option {
             Write-Host "Please proved the storage size that the VHD should be provisioned"
             Write-Host "For Megabytes use MB (e.g. 500MB) and for Gigabytes use GB (e.g 2GB)"
             $s = Read-Host -Prompt "Size:"
-            New-VHD -SizeBytes $s.Trim().Replace(" ","") -Path "c:\$msixworkingpath\$msixvhdname.vhd" -Dynamic -Confirm:$false
+            New-VHD -SizeBytes $s.Trim().Replace(" ", "") -Path "c:\$msixworkingpath\$msixvhdname.vhd" -Dynamic -Confirm:$false
         }
         else {
             Write-Host "Invalid option entered" -ForegroundColor Yellow -BackgroundColor Black
@@ -125,7 +125,7 @@ function Invoke-Option {
         elseif ($ihps.Trim().ToLower() -eq "n") {
             Invoke-Option -userSelection (Get-Option)
         }
-        else{
+        else {
             Write-Host "Invalid option entered" -ForegroundColor Yellow -BackgroundColor Black
             Invoke-Option -userSelection (Get-Option)
         }
@@ -133,9 +133,13 @@ function Invoke-Option {
     elseif ($userSelection -eq "4") {
         #4 - Configure Machine for MSIX Packaging 
         Write-Host "Configuring $env:computername for MSIX Packaging"
+        Write-Host "Configuring registry key AutoDownload for HKLM\Software\Policies\Microsoft\WindowsStore" -BackgroundColor Black -ForegroundColor Yellow
         reg add HKLM\Software\Policies\Microsoft\WindowsStore /v AutoDownload /t REG_DWORD /d 0 /f
+        Write-Host "Update of scheduled task \Microsoft\Windows\WindowsUpdate\Scheduled Start to Disable" -BackgroundColor Black -ForegroundColor Yellow
         Schtasks /Change /Tn "\Microsoft\Windows\WindowsUpdate\Scheduled Start" /Disable
+        Write-Host "Configuring registry key PreInstalledAppsEnabled for HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -BackgroundColor Black -ForegroundColor Yellow
         reg add HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager /v PreInstalledAppsEnabled /t REG_DWORD /d 0 /f
+        Write-Host "COnfiguring registry key ContentDeliveryAllowedOverride for HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Debug" -BackgroundColor Black -ForegroundColor Yellow
         reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Debug /v ContentDeliveryAllowedOverride /t REG_DWORD /d 0x2 /f
         Invoke-Option -userSelection (Get-Option)
     }
