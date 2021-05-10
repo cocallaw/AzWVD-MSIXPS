@@ -9,8 +9,8 @@ https://github.com/cocallaw/AzWVD-MSIXPS
 $msixmgrURI = "https://aka.ms/msixmgr"
 $msixdlpath = "C:\MSIX"
 $msixworkingpath = "C:\MSIXappattach"
-$msixexepathx64 = "$msixworkingpath\x64\msixmgr.exe"
-$msixexepathx86 = "$msixworkingpath\x86\msixmgr.exe"
+$msixexepathx64 = "$msixworkingpath\x64"
+$msixexepathx86 = "$msixworkingpath\x86"
 $msixvhdname = ""
 $msixvhdfolder = ""
 $msixpackage = ""
@@ -88,7 +88,7 @@ function Invoke-Option {
         }
 
         #Check for MSIXManager Tools
-        if (!(Test-Path -Path $msixexepathx64 )) {
+        if (!(Test-Path -Path $msixexepathx64\msixmgr.exe )) {
             Write-Host "MSIX Manager Tools not found on $env:computername at $msixworkingpath"
             $hv = Read-Host -Prompt "Would you like to download the latest MSIX Manager Tools on $env:computername ? (y/n)"
             if ($hv.Trim().ToLower() -eq "y") {
@@ -107,33 +107,35 @@ function Invoke-Option {
         }
 
         #Creating VHD Object
-        $msixvhdname = Read-Host -Prompt 'Please provide the name for the VHD:'
-        $msixvhdfolder = Read-Host -Prompt 'Please provide a folder name for the MSIX to be expaned to on the VHD:'
-        Write-Host "Please provide the path to the MSIX package you would like to use:"
+        $msixvhdname = Read-Host -Prompt 'Please provide the name for the VHD (.vhd extension will be added to end of name automatically)'
+        $msixvhdfolder = Read-Host -Prompt 'Please provide a folder name for the MSIX to be expaned to on the VHD'
+        Write-Host "Please provide the path to the MSIX package you would like to use"
         $msixpackage = get-msixpackagepath
         Write-Host "Using the MSIX Package located at - $msixpackage"
         $vs = Read-Host -Prompt "Would you like to create the VHD with the default size of 1024MB ? (y/n)"
+        $vp = "$msixworkingpath\$msixvhdname.vhd"
         if ($vs.Trim().ToLower() -eq "y") {
-            New-VHD -SizeBytes 1024MB -Path "c:\$msixworkingpath\$msixvhdname.vhd" -Dynamic -Confirm:$false
+            New-VHD -SizeBytes 1024MB -Path $vp -Dynamic -Confirm:$false
         }
         elseif ($vs.Trim().ToLower() -eq "n") {
             Write-Host "Please proved the storage size that the VHD should be provisioned"
             Write-Host "For Megabytes use MB (e.g. 500MB) and for Gigabytes use GB (e.g 2GB)"
-            $s = Read-Host -Prompt "Size:"
-            New-VHD -SizeBytes $s.Trim().Replace(" ", "") -Path "c:\$msixworkingpath\$msixvhdname.vhd" -Dynamic -Confirm:$false
+            $s = Read-Host -Prompt "Size"
+            New-VHD -SizeBytes $s.Trim().Replace(" ", "") -Path $vp -Dynamic -Confirm:$false
         }
         else {
             Write-Host "Invalid option entered" -ForegroundColor Yellow -BackgroundColor Black
             Invoke-Option -userSelection (Get-Option)
         }
-        $vhdObject = Mount-VHD "c:\$msixworkingpath\$msixvhdname.vhd" -Passthru
+        $vhdObject = Mount-VHD $vp -Passthru
         $disk = Initialize-Disk -Passthru -Number $vhdObject.Number
         $partition = New-Partition -AssignDriveLetter -UseMaximumSize -DiskNumber $disk.Number
         Format-Volume -FileSystem NTFS -Confirm:$false -DriveLetter $partition.DriveLetter -Force
         #Expand MSIX Package into VHD 
-        .\$msixworkingpath\msixmgr.exe -Unpack -packagePath $msixpackage -destination "d:\$msixvhdfolder" -applyacls
+        $destpath = $partition.DriveLetter+":\"+$msixvhdfolder
+        & $msixexepathx64\msixmgr.exe -Unpack -packagePath $msixpackage -destination $destpath -applyacls
         #Unmount VHD
-        Dismount-VHD -path "c:\$msixworkingpath\$msixvhdname.vhd"
+        Dismount-VHD -path $vp
         Invoke-Option -userSelection (Get-Option)
     }
     elseif ($userSelection -eq "2") {
