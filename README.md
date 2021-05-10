@@ -22,4 +22,4 @@ To download a local copy of the latest version of the script run the command bel
 - Create MSIX VHD
 - Download MSIX Manager 
 - Install Windows 10 Hyper-V PowerShell
-- Configure Machined for MSIX Packaging
+- Configure Machine for MSIX Packaging
