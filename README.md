@@ -17,7 +17,7 @@ To download a local copy of the latest version of the script run the command bel
 ![PowerShell Screenshot](/images/wvdmsixpsscreenshot01.png)
 
 
-### Currently the WVD MSIX App Attach Multitool provides the option to perform the following tasks as of May 10, 2020
+### Currently the WVD MSIX App Attach Multitool provides the option to perform the following tasks as of May 10, 2021
 
 - Create MSIX VHD
 - Download MSIX Manager 
