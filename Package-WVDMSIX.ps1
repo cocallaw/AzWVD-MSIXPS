@@ -9,6 +9,8 @@ https://github.com/cocallaw/AzWVD-MSIXPS
 $msixmgrURI = "https://aka.ms/msixmgr"
 $msixdlpath = "C:\MSIX"
 $msixworkingpath = "C:\MSIXappattach"
+$msixexepathx64 = "$msixworkingpath\x64\msixmgr.exe"
+$msixexepathx86 = "$msixworkingpath\x86\msixmgr.exe"
 $msixvhdname = ""
 $msixvhdfolder = ""
 $msixpackage = ""
@@ -17,7 +19,7 @@ $msixpackage = ""
 #region functions
 function Get-Option {
     Write-Host "What would you like to do?"
-    Write-Host "1 - Create MSIX VHDX"
+    Write-Host "1 - Create MSIX VHD"
     Write-Host "2 - Download MSIX Manager"    
     Write-Host "3 - Install Windows 10 Hyper-V PowerShell"
     Write-Host "4 - Configure Machine for MSIX Packaging"
@@ -27,13 +29,19 @@ function Get-Option {
 }
 
 function Get-LatestMSIXMGR {
+    Write-Host "Creating File Paths $msixdlpath and $msixworkingpath"
     New-Item -Path $msixdlpath -ItemType Directory -Force
     New-Item -Path $msixworkingpath -ItemType Directory -Force
     try {
-        Start-BitsTransfer -Source $msixmgrURI -Destination "$msixdlpath\MSIXManager.zip"
+        try {
+            Start-BitsTransfer -Source $msixmgrURI -Destination "$msixdlpath\MSIXManager.zip"
+        }
+        catch {
+            Invoke-WebRequest -Uri $msixmgrURI -OutFile "$msixdlpath\MSIXManager.zip"
+        }
     }
     catch {
-        Invoke-WebRequest -Uri $msixmgrURI -OutFile "$msixdlpath\MSIXManager.zip"
+        Write-Host "Download Error"
     }
     Write-Host "Downloaded MSIXManager to $msixdlpath"
     Write-Host "Expanding and cleaning up MSIXManager"
@@ -79,6 +87,25 @@ function Invoke-Option {
             }
         }
 
+        #Check for MSIXManager Tools
+        if (!(Test-Path -Path $msixexepathx64 )) {
+            Write-Host "MSIX Manager Tools not found on $env:computername at $msixworkingpath"
+            $hv = Read-Host -Prompt "Would you like to download the latest MSIX Manager Tools on $env:computername ? (y/n)"
+            if ($hv.Trim().ToLower() -eq "y") {
+                Write-Host "Downloading the latest MSIX Manger Tools from $msixmgrURI"
+                Get-LatestMSIXMGR     
+            }    
+            elseif ($hv.Trim().ToLower() -eq "n") {
+                Write-Host "MSIX Manager Tools are required to properly package MSIX apps" -BackgroundColor Black -ForegroundColor Yellow
+                Write-Host "Exiting packaging, please download latest tooling to proceed further" -BackgroundColor Black -ForegroundColor Yellow
+                Invoke-Option -userSelection (Get-Option)
+            }
+            else {
+                Write-Host "Invalid option entered" -ForegroundColor Yellow -BackgroundColor Black
+                Invoke-Option -userSelection (Get-Option)
+            }
+        }
+
         #Creating VHD Object
         $msixvhdname = Read-Host -Prompt 'Please provide the name for the VHD:'
         $msixvhdfolder = Read-Host -Prompt 'Please provide a folder name for the MSIX to be expaned to on the VHD:'
@@ -103,7 +130,7 @@ function Invoke-Option {
         $disk = Initialize-Disk -Passthru -Number $vhdObject.Number
         $partition = New-Partition -AssignDriveLetter -UseMaximumSize -DiskNumber $disk.Number
         Format-Volume -FileSystem NTFS -Confirm:$false -DriveLetter $partition.DriveLetter -Force
-        #Expand MSIX Package into VHDX 
+        #Expand MSIX Package into VHD 
         .\$msixworkingpath\msixmgr.exe -Unpack -packagePath $msixpackage -destination "d:\$msixvhdfolder" -applyacls
         #Unmount VHD
         Dismount-VHD -path "c:\$msixworkingpath\$msixvhdname.vhd"
