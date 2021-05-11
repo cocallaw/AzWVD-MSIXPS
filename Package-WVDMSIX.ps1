@@ -112,7 +112,9 @@ function Invoke-Option {
 
         #Creating VHD Object
         $msixvhdname = Read-Host -Prompt 'Please provide the name for the VHD (.vhd extension will be added to end of name automatically)'
+        $msixvhdname = $msixvhdname.Trim().Replace(" ", "")
         $msixvhdfolder = Read-Host -Prompt 'Please provide a folder name for the MSIX to be expaned to on the VHD'
+        $msixvhdfolder = $msixvhdfolder.Trim().Replace(" ", "")
         Write-Host "Please provide the path to the MSIX package you would like to use"
         $msixpackage = get-msixpackagepath
         Write-Host "Using the MSIX Package located at - $msixpackage"
