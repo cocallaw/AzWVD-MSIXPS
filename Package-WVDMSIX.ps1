@@ -20,7 +20,7 @@ $msixpackage = ""
 function Get-Option {
     Write-Host "What would you like to do?"
     Write-Host "1 - Create MSIX VHDX"
-    Write-Host "2 - Download MSIX Manager"    
+    Write-Host "2 - Download MSIX Manager (msixmgr.exe)"    
     Write-Host "3 - Install Windows 10 Hyper-V PowerShell"
     Write-Host "4 - Configure Machine for MSIX Packaging"
     Write-Host "8 - Exit"
@@ -43,9 +43,15 @@ function Get-LatestMSIXMGR {
     catch {
         Write-Host "Download Error"
     }
-    Write-Host "Downloaded MSIXManager to $msixdlpath"
-    Write-Host "Expanding and cleaning up MSIXManager"
-    Expand-Archive "$msixdlpath\MSIXManager.zip" -DestinationPath $msixworkingpath -ErrorAction SilentlyContinue
+    Write-Host "Downloaded MSIX Manager to $msixdlpath"
+    Write-Host "Expanding MSIX Manager"
+    try {
+        Expand-Archive "$msixdlpath\MSIXManager.zip" -DestinationPath $msixworkingpath
+    }
+    catch {
+        Write-Host "Issues encountered while attempted to expand MSIXManager.zip" 
+    }
+    Write-Host "Cleaning up downloaded files"
     Remove-Item "$msixdlpath" -Recurse
 }
 
