@@ -134,7 +134,8 @@ function Invoke-Option {
             Write-Host "For Megabytes use MB (e.g. 500MB) and for Gigabytes use GB (e.g 2GB)"
             $s = Read-Host -Prompt "Size"
             $s = $s.Trim().Replace(" ", "")
-            New-VHD -SizeBytes [uint64]$s -Path $vp -Dynamic -Confirm:$false
+            $s64 = ($s / 1)
+            New-VHD -SizeBytes $s64 -Path $vp -Dynamic -Confirm:$false
         }
         else {
             Write-Host "Invalid option entered" -ForegroundColor Yellow -BackgroundColor Black
