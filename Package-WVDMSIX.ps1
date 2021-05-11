@@ -29,7 +29,7 @@ function Get-Option {
 }
 
 function Get-LatestMSIXMGR {
-    Write-Host "Creating File Paths $msixdlpath and $msixworkingpath"
+    Write-Host "Creating File Paths $msixdlpath and $msixworkingpath" -BackgroundColor Black -ForegroundColor Green
     New-Item -Path $msixdlpath -ItemType Directory -Force
     New-Item -Path $msixworkingpath -ItemType Directory -Force
     try {
@@ -43,15 +43,15 @@ function Get-LatestMSIXMGR {
     catch {
         Write-Host "Download Error"
     }
-    Write-Host "Downloaded MSIX Manager to $msixdlpath"
-    Write-Host "Expanding MSIX Manager"
+    Write-Host "Downloaded MSIX Manager to $msixdlpath" -BackgroundColor Black -ForegroundColor Green
+    Write-Host "Expanding MSIX Manager" -BackgroundColor Black -ForegroundColor Green
     try {
         Expand-Archive "$msixdlpath\MSIXManager.zip" -DestinationPath $msixworkingpath -ErrorAction SilentlyContinue
     }
     catch {
         Write-Host "Issues encountered while attempted to expand MSIXManager.zip" 
     }
-    Write-Host "Cleaning up downloaded files"
+    Write-Host "Cleaning up downloaded files" -BackgroundColor Black -ForegroundColor Green
     Remove-Item "$msixdlpath" -Recurse
 }
 
