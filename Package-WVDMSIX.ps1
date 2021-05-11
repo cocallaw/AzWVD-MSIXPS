@@ -51,7 +51,11 @@ function Get-LatestMSIXMGR {
 
 function get-msixpackagepath {
     Add-Type -AssemblyName System.Windows.Forms
-    $FB = New-Object System.Windows.Forms.OpenFileDialog -Property @{ InitialDirectory = [Environment]::GetFolderPath('Desktop') }
+    $FB = New-Object System.Windows.Forms.OpenFileDialog -Property @{ 
+        InitialDirectory = [Environment]::GetFolderPath('Desktop')
+        Filter = 'App Installer (*.msix)|*.msix'
+        Multiselect = $false
+    }
     $null = $FB.ShowDialog()
     return $FB.FileName
 }
