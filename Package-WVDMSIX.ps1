@@ -46,7 +46,7 @@ function Get-LatestMSIXMGR {
     Write-Host "Downloaded MSIX Manager to $msixdlpath"
     Write-Host "Expanding MSIX Manager"
     try {
-        Expand-Archive "$msixdlpath\MSIXManager.zip" -DestinationPath $msixworkingpath
+        Expand-Archive "$msixdlpath\MSIXManager.zip" -DestinationPath $msixworkingpath -ErrorAction SilentlyContinue
     }
     catch {
         Write-Host "Issues encountered while attempted to expand MSIXManager.zip" 
@@ -123,7 +123,7 @@ function Invoke-Option {
         $msixvhdfolder = $msixvhdfolder.Trim().Replace(" ", "")
         Write-Host "Please provide the path to the MSIX package you would like to use"
         $msixpackage = get-msixpackagepath
-        Write-Host "Using the MSIX Package located at - $msixpackage"
+        Write-Host "Using the MSIX Package located at - $msixpackage" -BackgroundColor Black -ForegroundColor Green
         $vs = Read-Host -Prompt "Would you like to create the VHDX with the default size of 1024MB ? (y/n)"
         $vp = "$msixworkingpath\$msixvhdname.vhdx"
         if ($vs.Trim().ToLower() -eq "y") {
@@ -140,11 +140,14 @@ function Invoke-Option {
             Invoke-Option -userSelection (Get-Option)
         }
         try {
+            Write-Host "Mounting VHDX $vp" -BackgroundColor Black -ForegroundColor Green
             $vhdObject = Mount-VHD $vp -Passthru
+            Write-Host "Iniliatizing disk and creating partition" -BackgroundColor Black -ForegroundColor Green
             $disk = Initialize-Disk -Passthru -Number $vhdObject.Number
             $partition = New-Partition -AssignDriveLetter -UseMaximumSize -DiskNumber $disk.Number
             Format-Volume -FileSystem NTFS -Confirm:$false -DriveLetter $partition.DriveLetter -Force
             #Expand MSIX Package into VHD 
+            Write-Host "Unpacking MSIX package into VHDX" -BackgroundColor Black -ForegroundColor Green
             $destpath = $partition.DriveLetter + ":\" + $msixvhdfolder
             & $msixexepathx64\msixmgr.exe -Unpack -packagePath $msixpackage -destination $destpath -applyacls
             #Unmount VHD
