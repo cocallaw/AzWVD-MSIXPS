@@ -133,7 +133,8 @@ function Invoke-Option {
             Write-Host "Please proved the storage size that the VHDX should be provisioned"
             Write-Host "For Megabytes use MB (e.g. 500MB) and for Gigabytes use GB (e.g 2GB)"
             $s = Read-Host -Prompt "Size"
-            New-VHD -SizeBytes $s.Trim().Replace(" ", "") -Path $vp -Dynamic -Confirm:$false
+            $s = $s.Trim().Replace(" ", "")
+            New-VHD -SizeBytes [uint64]$s -Path $vp -Dynamic -Confirm:$false
         }
         else {
             Write-Host "Invalid option entered" -ForegroundColor Yellow -BackgroundColor Black
