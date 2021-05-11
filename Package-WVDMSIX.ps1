@@ -19,7 +19,7 @@ $msixpackage = ""
 #region functions
 function Get-Option {
     Write-Host "What would you like to do?"
-    Write-Host "1 - Create MSIX VHD"
+    Write-Host "1 - Create MSIX VHDX"
     Write-Host "2 - Download MSIX Manager"    
     Write-Host "3 - Install Windows 10 Hyper-V PowerShell"
     Write-Host "4 - Configure Machine for MSIX Packaging"
@@ -53,8 +53,8 @@ function get-msixpackagepath {
     Add-Type -AssemblyName System.Windows.Forms
     $FB = New-Object System.Windows.Forms.OpenFileDialog -Property @{ 
         InitialDirectory = [Environment]::GetFolderPath('Desktop')
-        Filter = 'App Installer (*.msix)|*.msix'
-        Multiselect = $false
+        Filter           = 'App Installer (*.msix)|*.msix'
+        Multiselect      = $false
     }
     $null = $FB.ShowDialog()
     return $FB.FileName
@@ -73,11 +73,11 @@ function Invoke-Option {
     if ($userSelection -eq "1") {
         #1 - Create MSIX VHD
         if (Get-Module -ListAvailable -Name Hyper-V) {
-            Write-Host "Found Hyper-V PowerShell Modules for VHD creation" -BackgroundColor Black -ForegroundColor Green
+            Write-Host "Found Hyper-V PowerShell Modules for VHDX creation" -BackgroundColor Black -ForegroundColor Green
         } 
         else {
             Write-Host "Hyper-V Powershell Modules are not installed on $env:computername" -BackgroundColor Black -ForegroundColor Yellow
-            Write-Host "Unable to create VHD without Hyper-V Powershell Modules" -BackgroundColor Black -ForegroundColor Yellow
+            Write-Host "Unable to create VHDX without Hyper-V Powershell Modules" -BackgroundColor Black -ForegroundColor Yellow
             $hv = Read-Host -Prompt "Would you like to enable Hyper-V PowerShell modules on $env:computername ? (y/n)"
             if ($hv.Trim().ToLower() -eq "y") {
                 Invoke-Option -userSelection "3"
@@ -111,20 +111,20 @@ function Invoke-Option {
         }
 
         #Creating VHD Object
-        $msixvhdname = Read-Host -Prompt 'Please provide the name for the VHD (.vhd extension will be added to end of name automatically)'
+        $msixvhdname = Read-Host -Prompt 'Please provide the name for the VHDX (.vhdx extension will be added to end of name automatically)'
         $msixvhdname = $msixvhdname.Trim().Replace(" ", "")
-        $msixvhdfolder = Read-Host -Prompt 'Please provide a folder name for the MSIX to be expaned to on the VHD'
+        $msixvhdfolder = Read-Host -Prompt 'Please provide a folder name for the MSIX to be expaned to on the VHDX'
         $msixvhdfolder = $msixvhdfolder.Trim().Replace(" ", "")
         Write-Host "Please provide the path to the MSIX package you would like to use"
         $msixpackage = get-msixpackagepath
         Write-Host "Using the MSIX Package located at - $msixpackage"
-        $vs = Read-Host -Prompt "Would you like to create the VHD with the default size of 1024MB ? (y/n)"
-        $vp = "$msixworkingpath\$msixvhdname.vhd"
+        $vs = Read-Host -Prompt "Would you like to create the VHDX with the default size of 1024MB ? (y/n)"
+        $vp = "$msixworkingpath\$msixvhdname.vhdx"
         if ($vs.Trim().ToLower() -eq "y") {
             New-VHD -SizeBytes 1024MB -Path $vp -Dynamic -Confirm:$false
         }
         elseif ($vs.Trim().ToLower() -eq "n") {
-            Write-Host "Please proved the storage size that the VHD should be provisioned"
+            Write-Host "Please proved the storage size that the VHDX should be provisioned"
             Write-Host "For Megabytes use MB (e.g. 500MB) and for Gigabytes use GB (e.g 2GB)"
             $s = Read-Host -Prompt "Size"
             New-VHD -SizeBytes $s.Trim().Replace(" ", "") -Path $vp -Dynamic -Confirm:$false
@@ -133,15 +133,22 @@ function Invoke-Option {
             Write-Host "Invalid option entered" -ForegroundColor Yellow -BackgroundColor Black
             Invoke-Option -userSelection (Get-Option)
         }
-        $vhdObject = Mount-VHD $vp -Passthru
-        $disk = Initialize-Disk -Passthru -Number $vhdObject.Number
-        $partition = New-Partition -AssignDriveLetter -UseMaximumSize -DiskNumber $disk.Number
-        Format-Volume -FileSystem NTFS -Confirm:$false -DriveLetter $partition.DriveLetter -Force
-        #Expand MSIX Package into VHD 
-        $destpath = $partition.DriveLetter+":\"+$msixvhdfolder
-        & $msixexepathx64\msixmgr.exe -Unpack -packagePath $msixpackage -destination $destpath -applyacls
-        #Unmount VHD
-        Dismount-VHD -path $vp
+        try {
+            $vhdObject = Mount-VHD $vp -Passthru
+            $disk = Initialize-Disk -Passthru -Number $vhdObject.Number
+            $partition = New-Partition -AssignDriveLetter -UseMaximumSize -DiskNumber $disk.Number
+            Format-Volume -FileSystem NTFS -Confirm:$false -DriveLetter $partition.DriveLetter -Force
+            #Expand MSIX Package into VHD 
+            $destpath = $partition.DriveLetter + ":\" + $msixvhdfolder
+            & $msixexepathx64\msixmgr.exe -Unpack -packagePath $msixpackage -destination $destpath -applyacls
+            #Unmount VHD
+            Dismount-VHD -path $vp
+            Write-Host "The MSIX Package $msixpackage was unpacked into VHDX located at $vp" -BackgroundColor Black -ForegroundColor Green
+        }
+        catch {
+            Write-Host "Error Creating VHDX and Unpacking MSIX" -BackgroundColor Black -ForegroundColor Yellow
+            Invoke-Option -userSelection (Get-Option)
+        }
         Invoke-Option -userSelection (Get-Option)
     }
     elseif ($userSelection -eq "2") {
@@ -176,11 +183,6 @@ function Invoke-Option {
         reg add HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager /v PreInstalledAppsEnabled /t REG_DWORD /d 0 /f
         Write-Host "COnfiguring registry key ContentDeliveryAllowedOverride for HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Debug" -BackgroundColor Black -ForegroundColor Yellow
         reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Debug /v ContentDeliveryAllowedOverride /t REG_DWORD /d 0x2 /f
-        Invoke-Option -userSelection (Get-Option)
-    }
-    elseif ($userSelection -eq "5") {
-        #5 - Create Self Signed Cert for Testing 
-
         Invoke-Option -userSelection (Get-Option)
     }
     elseif ($userSelection -eq "8") {
